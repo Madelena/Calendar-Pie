@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
+    "check:docs": "node scripts/check-doc-links.mjs",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.ts",
     "test:browser": "playwright test",
