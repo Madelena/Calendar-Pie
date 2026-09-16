@@ -27,7 +27,7 @@ python3 -m venv .venv
 
 Open <http://127.0.0.1:8765>. Keep the service running while using the clock; Ctrl+C stops it. The server uses the operating system's timezone by default.
 
-Windows and Raspberry Pi instructions are in the [deployment guide](docs/DEPLOYMENT.md). Build the interface on another computer when deploying to a Pi; Node.js is not required on the Pi itself.
+Windows and Raspberry Pi instructions are in the [deployment guide](docs/DEPLOYMENT.md). Pi installations can be updated with a fast-forward Git pull followed by the deployment script; the Pi needs Node.js to build the interface.
 
 ## Add calendars
 
@@ -46,7 +46,7 @@ For the round display, open <http://127.0.0.1:8765/?kiosk=1> in a fullscreen bro
 
 ## Project status
 
-Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, authenticated LAN configuration, and automatic appliance startup are planned; the current service accepts local connections only.
+Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, authenticated LAN configuration, and automatic kiosk-browser startup are planned; the current service accepts local connections only. The Pi deployment script configures service startup and failure recovery through the user's systemd manager.
 
 All-day events are hidden. Windows that cross a daylight-saving clock change use the desktop agenda because repeated or skipped hours cannot yet be represented reliably on the dial. Calendar navigation is limited to the service's cached date range.
 

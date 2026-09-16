@@ -22,7 +22,7 @@ Open `http://127.0.0.1:8080/?kiosk=1&diagnostics=1` in the installed browser's f
 chromium --kiosk 'http://127.0.0.1:8080/?kiosk=1&diagnostics=1'
 ```
 
-Run as an ordinary user in the graphical session. This temporary server is for the local prototype; no Node.js installation or development server is needed on the Pi. The final appliance service/startup configuration remains a later milestone.
+Run as an ordinary user in the graphical session. This temporary server isolates the static renderer test; no Node.js installation or development server is needed for that test. The full application deployment uses the systemd service described in the [deployment guide](DEPLOYMENT.md#deploy-to-a-raspberry-pi), while automatic kiosk-browser startup remains a later milestone.
 
 ## Measure memory and swap
 
