@@ -42,4 +42,4 @@ Inspect the current branch and worktree before editing. Preserve unrelated user 
 
 Commit `package-lock.json` with dependency changes. Do not commit local databases, credentials, virtual environments, dependency directories, build output, test artifacts, or generated reports covered by `.gitignore`.
 
-Do not push, open or merge pull requests, rewrite history, force-push, or delete branches unless the user explicitly requests it. After committing, report the branch, commit hashes, checks run, failures, and remaining work.
+After completing and committing a task, push the task branch and create or update a pull request to `main` without waiting for separate approval. The pull request title and description must reflect the final change and list the checks run. Do not merge pull requests, rewrite history, force-push, or delete branches unless the user explicitly requests it. After committing, report the branch, commit hashes, pull request URL, checks run, failures, and remaining work.
