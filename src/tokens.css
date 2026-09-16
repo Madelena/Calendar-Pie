@@ -1,0 +1,56 @@
+﻿:root {
+  color-scheme: light;
+  --paper: #FFFFFF;
+  --ink: #000000;
+  --green: #C30052;
+  --muted: var(--ink);
+  --line: #CCCCCC;
+  --hover: #EEEEEE;
+  --dial: var(--paper);
+  --dial-line: var(--line);
+  --dial-overlay: var(--paper);
+  --tick: #CCCCCC;
+  --tick-major: #888888;
+  --hour-label: var(--ink);
+  --grid-hour: #B8B8B8;
+  --grid-half: #D2D2D2;
+  --event-boundary: var(--line);
+  --duration-line: #888888;
+  --duration-ink: var(--ink);
+  --date-ink: var(--ink);
+  --sample-ink: var(--ink);
+  --card: var(--paper);
+  --card-ink: var(--ink);
+  --card-time: var(--ink);
+  --card-separator: var(--line);
+  --icon-background: var(--paper);
+  --icon-ink: var(--ink);
+  --agenda-active: var(--hover);
+  --agenda-arrow: var(--ink);
+  --note-ink: var(--ink);
+  --footer-ink: var(--ink);
+  --scrollbar: #888888;
+  --strong-background: var(--green);
+  --strong-ink: #FFFFFF;
+  --brand-dot: var(--green);
+  --sample-dot: var(--ink);
+  --event-focus: var(--green);
+  --event-label-ink: #000000;
+  --clock-shadow: transparent;
+  --dialog-shadow: transparent;
+  --backdrop: #00000080;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --paper: #000000;
+  --ink: #FFFFFF;
+  --line: #444444;
+  --hover: #222222;
+  --tick: #444444;
+  --tick-major: #888888;
+  --grid-hour: #555555;
+  --grid-half: #383838;
+  --duration-line: #888888;
+  --backdrop: #000000A6;
+}

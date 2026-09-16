@@ -1,0 +1,15 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+artifacts/
+__pycache__/
+*.csv
+.env
+.venv/
+.data/
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+.pytest_cache/
+pytest-cache-files-*/
