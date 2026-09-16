@@ -1,0 +1,7 @@
+Flask>=3.1,<4
+waitress>=3,<4
+icalendar>=6,<8
+recurring-ical-events>=3.8,<4
+requests>=2.32,<3
+tzdata
+tzlocal>=5,<6
