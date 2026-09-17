@@ -49,6 +49,11 @@ require_command systemctl
 cd "$repository_dir"
 [ -f package-lock.json ] || fail "Run this script from a Calendar Pie checkout."
 [ -f requirements.txt ] || fail "requirements.txt is missing."
+case "$repository_dir" in
+    *[!A-Za-z0-9_./-]*)
+        fail "The repository path contains characters unsupported by the systemd unit."
+        ;;
+esac
 git diff --quiet && git diff --cached --quiet \
     || fail "Commit or discard tracked changes before deploying."
 if [ -f "$legacy_database_path" ] && [ ! -f "$database_path" ]; then
@@ -88,7 +93,7 @@ Description=Calendar Pie local calendar service
 
 [Service]
 Type=simple
-WorkingDirectory="$repository_unit_value"
+WorkingDirectory=$repository_unit_value
 ExecStart="$python_unit_value" -m calendar_pie --data-dir "$data_unit_value"
 Restart=on-failure
 RestartSec=5
