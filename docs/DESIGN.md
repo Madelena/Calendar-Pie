@@ -99,4 +99,4 @@ This rule also appears in the repository's `AGENTS.md` so future interface work 
 
 The intended product will provide a phone-accessible setup portal for Wi-Fi credentials, timezone, ICS URLs, calendar colors, and other configuration. First boot should offer a protected setup network and a direct address when captive-portal detection fails. A failed home-network connection should restore setup mode.
 
-These provisioning flows, LAN authentication, automatic kiosk-browser startup, and enclosure behavior are design goals rather than implemented features. The Pi deployment script configures service startup and recovery. Current operation and limitations are documented in [DEPLOYMENT.md](DEPLOYMENT.md), while longer-term work remains in [PLAN.md](PLAN.md).
+These provisioning flows, LAN authentication, and enclosure behavior are design goals rather than implemented features. The Pi deployment script configures application and kiosk-browser startup and recovery with Cage, Chromium, and systemd user services. Current operation and limitations are documented in [DEPLOYMENT.md](DEPLOYMENT.md), while longer-term work remains in [PLAN.md](PLAN.md).

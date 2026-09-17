@@ -1,6 +1,6 @@
 # Deployment and operation
 
-Calendar Pie runs as a local Python service with a browser display. The service serves the built interface, synchronizes ICS sources, and stores calendars in SQLite. The Pi deployment script installs a user-level systemd service for startup and recovery. Wi-Fi provisioning, a captive portal, LAN login, and automatic kiosk-browser startup are not implemented yet.
+Calendar Pie runs as a local Python service with a browser display. The service serves the built interface, synchronizes ICS sources, and stores calendars in SQLite. The Pi deployment script installs user-level systemd services for the application and kiosk browser. Wi-Fi provisioning, a captive portal, and LAN login are not implemented yet.
 
 ## Requirements
 
@@ -38,7 +38,16 @@ Open <http://127.0.0.1:8765>. Leave the process running; Ctrl+C stops it. Use **
 
 ## Deploy to a Raspberry Pi
 
-Install Git, curl, Python 3.11 or newer with virtual-environment support, and Node.js 22.18 or newer on the Pi. Clone the repository as the account that will display the clock, then run the deployment script without `sudo`:
+Install Git, curl, Python 3.11 or newer with virtual-environment support, Node.js 22.18 or newer, Chromium, Cage, and seatd on the Pi. On Raspberry Pi OS Lite, install the OS packages with:
+
+```sh
+sudo apt update
+sudo apt install --no-install-recommends git chromium chromium-sandbox rpi-chromium-mods cage seatd
+```
+
+Cage is a single-application Wayland compositor; it does not install a desktop environment. The seatd service gives the unprivileged compositor access to the display and input devices. Install Node.js 22 for ARM64 using a trusted distribution method; Raspberry Pi OS Trixie's `nodejs` package is version 20 and does not meet this project's requirement.
+
+Clone the repository as the account that will display the clock, then run the deployment script without `sudo`:
 
 ```sh
 git clone https://github.com/Madelena/Calendar-Pie.git calendar-pie
@@ -46,7 +55,12 @@ cd calendar-pie
 ./scripts/deploy-pi.sh
 ```
 
-The script performs a reproducible frontend build, creates or updates `.venv`, installs the locked Python requirements, and enables and restarts `calendar-pie.service` as a systemd user service. It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It also checks <http://127.0.0.1:8765/api/health> before reporting success.
+The script performs a reproducible frontend build, creates or updates `.venv`, installs the locked Python requirements, and enables and restarts two systemd user services:
+
+- `calendar-pie.service` runs the local application and calendar synchronization service.
+- `calendar-pie-kiosk.service` runs Chromium inside Cage at <http://127.0.0.1:8765/?kiosk=1>.
+
+It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk.
 
 The service data is stored outside the checkout at:
 
@@ -54,7 +68,7 @@ The service data is stored outside the checkout at:
 ~/.local/share/calendar-pie/calendar-pie.sqlite3
 ```
 
-This keeps calendar configuration, credentials, and cached events separate from Git updates. The generated user unit is at `~/.config/systemd/user/calendar-pie.service`. To start the service during boot without waiting for an interactive login, enable lingering once:
+This keeps calendar configuration, credentials, cached events, and the kiosk's Chromium profile separate from Git updates. The generated user units are under `~/.config/systemd/user/`. To start them during boot without waiting for an interactive login, enable lingering once:
 
 ```sh
 sudo loginctl enable-linger "$USER"
@@ -71,13 +85,14 @@ install -m 600 .data/calendar-pie.sqlite3 "$HOME/.local/share/calendar-pie/"
 
 The script refuses to start with an unmigrated legacy database rather than silently displaying an empty calendar list. Keep the old `.data` directory as a backup until the migrated service has been verified.
 
-Open <http://127.0.0.1:8765> in the Pi's browser to configure sources and appearance. Then open <http://127.0.0.1:8765/?kiosk=1> in fullscreen mode. If the installed browser executable is `chromium`, launch it from the graphical session with:
+Open <http://127.0.0.1:8765> in another browser through an SSH tunnel to configure calendar sources. The managed kiosk starts automatically on the attached display. To restart it or inspect its status:
 
 ```sh
-chromium --kiosk 'http://127.0.0.1:8765/?kiosk=1'
+systemctl --user restart calendar-pie-kiosk.service
+systemctl --user status calendar-pie-kiosk.service
 ```
 
-Use the same browser profile and URL host for configuration and kiosk mode so browser preferences carry over. The service starts with the user's systemd manager and restarts after a failure. Starting Chromium in kiosk mode after graphical login still needs desktop-session configuration.
+Appearance preferences belong to the kiosk's persistent Chromium profile. Configure appearance directly on the attached touch display. Both services start with the user's systemd manager and restart after a failure.
 
 ## Timezone and storage
 
@@ -120,6 +135,8 @@ If deployment fails, inspect the service with:
 ```sh
 systemctl --user status calendar-pie.service
 journalctl --user -u calendar-pie.service -n 100 --no-pager
+systemctl --user status calendar-pie-kiosk.service
+journalctl --user -u calendar-pie-kiosk.service -n 100 --no-pager
 ```
 
 See [development](DEVELOPMENT.md) for contributor workflows and tests.

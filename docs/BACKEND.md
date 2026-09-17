@@ -1,6 +1,6 @@
 # Local calendar service
 
-The Python service serves the built clock, manages calendar sources in SQLite, and refreshes read-only ICS feeds in the background. It runs on localhost. The Pi deployment installs service startup and recovery; LAN authentication, phone setup, Wi-Fi provisioning, and kiosk-browser startup are separate, unfinished milestones.
+The Python service serves the built clock, manages calendar sources in SQLite, and refreshes read-only ICS feeds in the background. It runs on localhost. The Pi deployment installs application and kiosk-browser startup and recovery; LAN authentication, phone setup, and Wi-Fi provisioning are separate, unfinished milestones.
 
 Installation, Windows commands, timezone options, and Raspberry Pi operation are covered in [the deployment guide](DEPLOYMENT.md). Contributor setup and test commands are in [the development guide](DEVELOPMENT.md).
 

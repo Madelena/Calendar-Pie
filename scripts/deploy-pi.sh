@@ -3,12 +3,14 @@
 set -eu
 
 service_name="calendar-pie.service"
+kiosk_service_name="calendar-pie-kiosk.service"
 script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repository_dir=$(dirname -- "$script_dir")
 config_home=${XDG_CONFIG_HOME:-"$HOME/.config"}
 data_home=${XDG_DATA_HOME:-"$HOME/.local/share"}
 unit_dir="$config_home/systemd/user"
 unit_path="$unit_dir/$service_name"
+kiosk_unit_path="$unit_dir/$kiosk_service_name"
 data_dir="$data_home/calendar-pie"
 database_path="$data_dir/calendar-pie.sqlite3"
 legacy_database_path="$repository_dir/.data/calendar-pie.sqlite3"
@@ -39,6 +41,8 @@ trap cleanup EXIT HUP INT TERM
 [ "$(id -u)" -ne 0 ] || fail "Run this script as the account that displays the clock, not with sudo."
 
 require_command curl
+require_command cage
+require_command chromium
 require_command git
 require_command node
 require_command npm
@@ -86,6 +90,8 @@ chmod 700 "$data_dir"
 repository_unit_value=$(escape_systemd_value "$repository_dir")
 python_unit_value=$(escape_systemd_value "$repository_dir/.venv/bin/python")
 data_unit_value=$(escape_systemd_value "$data_dir")
+cage_unit_value=$(escape_systemd_value "$(command -v cage)")
+chromium_unit_value=$(escape_systemd_value "$(command -v chromium)")
 
 cat > "$unit_path" <<EOF
 [Unit]
@@ -97,6 +103,24 @@ WorkingDirectory=$repository_unit_value
 ExecStart="$python_unit_value" -m calendar_pie --data-dir "$data_unit_value"
 Restart=on-failure
 RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+
+cat > "$kiosk_unit_path" <<EOF
+[Unit]
+Description=Calendar Pie kiosk browser
+Requires=$service_name
+After=$service_name
+
+[Service]
+Type=simple
+Environment=LIBSEAT_BACKEND=seatd
+ExecStart="$cage_unit_value" -d -- "$chromium_unit_value" --user-data-dir="$data_unit_value/chromium" --no-first-run --no-default-browser-check --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic --ozone-platform=wayland --kiosk http://127.0.0.1:8765/?kiosk=1
+Restart=always
+RestartSec=5
+TimeoutStopSec=10
 
 [Install]
 WantedBy=default.target
@@ -115,7 +139,7 @@ fi
 
 printf '%s\n' "Restarting the service..."
 systemctl --user daemon-reload
-systemctl --user enable "$service_name" >/dev/null
+systemctl --user enable "$service_name" "$kiosk_service_name" >/dev/null
 if ! systemctl --user restart "$service_name"; then
     systemctl --user --no-pager --full status "$service_name" >&2 || true
     fail "The service could not be restarted."
@@ -131,4 +155,14 @@ if ! systemctl --user is-active --quiet "$service_name"; then
     fail "The service stopped after its health check."
 fi
 
-printf '%s\n' "Calendar Pie is running at http://127.0.0.1:8765."
+printf '%s\n' "Restarting the kiosk..."
+if ! systemctl --user restart "$kiosk_service_name"; then
+    systemctl --user --no-pager --full status "$kiosk_service_name" >&2 || true
+    fail "The kiosk browser could not be restarted."
+fi
+if ! systemctl --user is-active --quiet "$kiosk_service_name"; then
+    systemctl --user --no-pager --full status "$kiosk_service_name" >&2 || true
+    fail "The kiosk browser stopped during startup."
+fi
+
+printf '%s\n' "Calendar Pie is running at http://127.0.0.1:8765 and the kiosk is starting."
