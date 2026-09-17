@@ -238,6 +238,8 @@ test('720px kiosk fits the round display and supports touch details', async ({ p
   await page.setViewportSize({ width: 720, height: 720 });
   await page.goto('/?kiosk=1');
   await expect(page.locator('.site-header')).toBeHidden();
+  await expect(page.locator('body')).toHaveCSS('cursor', 'none');
+  await expect(page.locator('#clock .event-group').first()).toHaveCSS('cursor', 'none');
   const bounds = await page.locator('#clock-stage').boundingBox();
   expect(bounds).toMatchObject({ x: 0, y: 0, width: 720, height: 720 });
   // 11 o'clock, radius 285: inside the outer Design catch-up lane.

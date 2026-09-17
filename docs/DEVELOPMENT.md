@@ -15,7 +15,7 @@ Open the URL printed by Vite. The development server proxies `/api` to a calenda
 
 The sample preview starts paused at 10:10 in the browser's local timezone. Its scenarios cover everyday events, overlaps, duration segments, overnight events, and an empty day. **Use current time** changes it to a minute-updated live clock. `npm run preview` serves the production build as a static sample and intentionally has no API proxy.
 
-The frontend is TypeScript, HTML, CSS, and SVG. Vite is build tooling only. Inter and Open Sans are bundled; no runtime font CDN is used. Browser appearance settings use localStorage and custom font files use IndexedDB.
+The frontend is TypeScript, HTML, CSS, and SVG. Vite is build tooling only. Inter and Open Sans are bundled; no runtime font CDN is used. Display settings use localStorage as an offline fallback and synchronize through the calendar service when available. Custom font files use IndexedDB and remain browser-local.
 
 ## Calendar service development
 
@@ -78,7 +78,7 @@ Use [HARDWARE-TEST.md](HARDWARE-TEST.md) for the Pi memory sampler, touch-latenc
 
 ## Architecture and boundaries
 
-The Python service owns calendar fetching, recurrence expansion, SQLite, and static/API serving. The browser owns rendering and appearance preferences. The current service listens only on localhost; LAN authentication and the setup portal belong to later appliance work.
+The Python service owns calendar fetching, recurrence expansion, SQLite, shared display preferences, and static/API serving. The browser owns rendering and browser-local custom font files. Manual launches listen only on localhost by default; the Pi deployment enables unauthenticated access by literal LAN IP for configuration. LAN authentication and the setup portal belong to later appliance work.
 
 The interface redraws on meaningful changes and minute boundaries rather than animating continuously. All-day events are filtered before display. During daylight-saving transitions the renderer avoids ambiguous clock geometry and relies on the chronological desktop agenda.
 

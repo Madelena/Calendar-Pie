@@ -6,6 +6,8 @@ async function mockService(page: Page) {
     offline: false,
     mutations: [] as { method: string; path: string; body: Record<string, unknown> | null }[],
     queries: [] as URL[],
+    displaySettings: { span: 12 as const, format: '12' as const, historyHours: 3, theme: 'light' as 'light' | 'dark', font: 'inter' as const, accentColor: '#C30052' },
+    settingsRevision: 0,
     calendars: [{ id: 'feed', name: 'Real <Calendar>', url: 'https://example.com/feed.ics', username: 'reader', hasPassword: true, color: '#AABBCC', enabled: true, refreshMinutes: 15, lastSuccess: '2026-01-15T10:00:00Z', lastAttempt: '2026-01-15T10:00:00Z', lastError: null as string | null }],
   };
   await page.clock.install({ time: new Date(2026, 0, 15, 10, 10) });
@@ -16,6 +18,16 @@ async function mockService(page: Page) {
     const timezone = await page.evaluate(() => Intl.DateTimeFormat().resolvedOptions().timeZone);
     if (state.offline) { await route.fulfill({ status: 503, json: { error: 'Network disconnected' } }); return; }
     if (path === '/api/health') { await route.fulfill({ json: { status: 'ok', timezone } }); return; }
+    if (path === '/api/settings') {
+      if (request.method() === 'PATCH') {
+        const body = request.postDataJSON() as Record<string, unknown>;
+        state.mutations.push({ method: request.method(), path, body });
+        state.displaySettings = { ...state.displaySettings, ...body } as typeof state.displaySettings;
+        state.settingsRevision++;
+      }
+      await route.fulfill({ json: { settings: state.displaySettings, revision: state.settingsRevision } });
+      return;
+    }
     if (path === '/api/events') {
       state.queries.push(url);
       const start = new Date(2026, 0, 15, 10, 30).toISOString();
@@ -122,6 +134,27 @@ test('source settings support password retention, add, refresh and delete', asyn
   expect(state.mutations.at(-1)!.body!.password).toBe('private-value');
   expect(await page.evaluate(() => JSON.stringify(localStorage))).not.toContain('private-value');
   await expect(page.getByRole('dialog')).not.toContainText('private-value');
+});
+
+test('display settings save to the service and refresh the kiosk', async ({ page }) => {
+  const state = await mockService(page);
+  await page.goto('/');
+  await expect(page.locator('#clock [data-event="real-event"]')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.locator('#setting-theme').selectOption('dark');
+  await page.clock.runFor(101);
+  await expect.poll(() => state.mutations.filter(item => item.path === '/api/settings').length).toBe(1);
+  expect(state.displaySettings.theme).toBe('dark');
+
+  state.displaySettings.theme = 'light';
+  state.settingsRevision++;
+  await page.keyboard.press('Escape');
+  await page.goto('/?kiosk=1');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  state.displaySettings.theme = 'dark';
+  state.settingsRevision++;
+  await page.clock.runFor(5000);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
 test('configuration Back follows the source hierarchy without saving or deleting', async ({ page }) => {

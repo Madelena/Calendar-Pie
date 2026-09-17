@@ -27,7 +27,7 @@ python3 -m venv .venv
 
 Open <http://127.0.0.1:8765>. Keep the service running while using the clock; Ctrl+C stops it. The server uses the operating system's timezone by default.
 
-Windows and Raspberry Pi instructions are in the [deployment guide](docs/DEPLOYMENT.md). Build the interface on another computer when deploying to a Pi; Node.js is not required on the Pi itself.
+Windows and Raspberry Pi instructions are in the [deployment guide](docs/DEPLOYMENT.md). Pi installations can be updated with a fast-forward Git pull followed by the deployment script; the Pi needs Node.js to build the interface.
 
 ## Add calendars
 
@@ -40,13 +40,13 @@ Tap an event slice to see its details. The countdown shows the time until an act
 
 Swipe the clock or use the previous and next buttons to browse time. Select the displayed time range to return to the current window. The center always shows the current time and date.
 
-Settings control the dial span, time format, theme, accent color, fonts, and fading history. Choose **Sample preview** to explore the clock without adding a calendar. Appearance preferences belong to each browser; calendar sources are stored by the local service.
+Settings control the dial span, time format, theme, accent color, fonts, and fading history. Choose **Sample preview** to explore the clock without adding a calendar. When the calendar service is available, display preferences are stored by the service and update the kiosk automatically. Imported custom-font files remain local to the browser where they were added.
 
 For the round display, open <http://127.0.0.1:8765/?kiosk=1> in a fullscreen browser. Settings are available only from the regular browser view without `?kiosk=1`.
 
 ## Project status
 
-Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, authenticated LAN configuration, and automatic appliance startup are planned; the current service accepts local connections only.
+Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, and authenticated LAN configuration are planned; the Pi deployment currently permits unauthenticated configuration by literal IP address on a trusted local network. The deployment script configures application and kiosk-browser startup and failure recovery through the user's systemd manager.
 
 All-day events are hidden. Windows that cross a daylight-saving clock change use the desktop agenda because repeated or skipped hours cannot yet be represented reliably on the dial. Calendar navigation is limited to the service's cached date range.
 

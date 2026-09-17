@@ -168,6 +168,7 @@ input[type='color'] { width: 44px; height: 32px; padding: 3px; border: 1px solid
 .dialog-agenda strong { display: block; font-size: 13px; font-weight: 500; }
 .dialog-agenda span { display: block; font-size: 11px; color: var(--muted); margin-top: 7px; }
 .kiosk { background: #000; overflow: hidden; }
+.kiosk, .kiosk * { cursor: none !important; }
 .kiosk .site-header, .kiosk .clock-toolbar, .kiosk .calendar-legend, .kiosk .day-panel, .kiosk .preview-tools, .kiosk .diagnostics { display: none; }
 .kiosk main { padding: 0; max-width: none; }
 .kiosk .workspace { display: block; }

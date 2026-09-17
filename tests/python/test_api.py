@@ -39,6 +39,20 @@ def test_health_crud_and_secret_omission(client, app):
     assert client.post(f"/api/calendars/{calendar_id}/refresh", json={}).status_code == 404
 
 
+def test_display_settings_persist_and_validate(client):
+    defaults = {"span": 12, "format": "12", "historyHours": 3, "theme": "light",
+                "font": "inter", "accentColor": "#C30052"}
+    assert client.get("/api/settings").json == {"settings": defaults, "revision": 0}
+    changed = client.patch("/api/settings", json={"theme": "dark", "accentColor": "#abcdef"})
+    assert changed.status_code == 200
+    assert changed.json == {"settings": {**defaults, "theme": "dark", "accentColor": "#ABCDEF"},
+                            "revision": 1}
+    assert client.get("/api/settings").json == changed.json
+    assert client.patch("/api/settings", json={"span": 12, "historyHours": 12}).status_code == 400
+    assert client.patch("/api/settings", json={"font": "custom"}).status_code == 400
+    assert client.patch("/api/settings", json={"unexpected": True}).status_code == 400
+
+
 @pytest.mark.parametrize("host", ["evil.example", "localhost.evil.example", "192.168.1.2", "127.0.0.2"])
 def test_rejects_non_loopback_hosts(client, host):
     assert client.get("/api/calendars", headers={"Host": host}).status_code == 403
@@ -47,6 +61,20 @@ def test_rejects_non_loopback_hosts(client, host):
 @pytest.mark.parametrize("host", ["localhost:8765", "127.0.0.1:8765", "[::1]:8765"])
 def test_accepts_loopback_hosts(client, host):
     assert client.get("/api/health", headers={"Host": host}).status_code == 200
+
+
+@pytest.mark.parametrize("host", ["192.168.56.89:8765", "10.0.0.2", "[fd00::1234]:8765"])
+def test_lan_mode_accepts_literal_ip_hosts(tmp_path, host):
+    app = create_app(tmp_path / "lan.sqlite3", allow_lan=True)
+    app.testing = True
+    assert app.test_client().get("/api/health", headers={"Host": host}).status_code == 200
+
+
+@pytest.mark.parametrize("host", ["evil.example", "calendar-pie.local", "192.168.1.2.evil.example"])
+def test_lan_mode_rejects_named_hosts(tmp_path, host):
+    app = create_app(tmp_path / "lan.sqlite3", allow_lan=True)
+    app.testing = True
+    assert app.test_client().get("/api/health", headers={"Host": host}).status_code == 403
 
 
 def test_csrf_and_json_guard(client):

@@ -14,7 +14,7 @@ import type { DurationSegment } from './durations.ts';
 import { fontStack, loadFont, installCustomFont, customFontName } from './fonts.ts';
 import type { FontChoice } from './fonts.ts';
 import { api, safeColor } from './api.ts';
-import type { CalendarSource, EventResponse, SourceCalendar } from './api.ts';
+import type { CalendarSource, DisplaySettings, DisplaySettingsResponse, EventResponse, SourceCalendar } from './api.ts';
 
 const params = new URLSearchParams(location.search);
 const kiosk = params.get('kiosk') === '1';
@@ -58,6 +58,9 @@ let requestedRange = '';
 let requestVersion = 0;
 let sourceBusy = false;
 let serviceMessage = '';
+let serviceAvailable = false;
+let displaySettingsRevision = -1;
+let displaySettingsSaveTimer: ReturnType<typeof setTimeout> | undefined;
 let ringSegments: DurationSegment[] = [];
 let timer: ReturnType<typeof setTimeout>;
 let lastFocus: Element | null = null;
@@ -168,8 +171,50 @@ let configurationBack: 'close' | 'settings' | 'sources' = 'close';
 document.getElementById('scenario')!.insertAdjacentHTML('beforeend', '<option value="segments">Overlap duration example</option>');
 const text = (id: string, value: string) => { document.getElementById(id)!.textContent = value; };
 
-function save() {
+function displaySettingsPayload(): Partial<DisplaySettings> {
+  return {
+    span: settings.span,
+    format: settings.format,
+    historyHours: settings.historyHours,
+    theme: settings.theme,
+    ...(settings.font === 'custom' ? {} : { font: settings.font }),
+    accentColor: settings.accentColor,
+  };
+}
+
+async function pushDisplaySettings() {
+  try {
+    const response = await api<DisplaySettingsResponse>('/settings', 'PATCH', displaySettingsPayload());
+    displaySettingsRevision = response.revision;
+  } catch { /* Local settings remain usable while the service is unavailable. */ }
+}
+
+function save(sync = true) {
   try { localStorage.setItem('calendar-pie-settings', JSON.stringify(settings)); } catch { /* Private/kiosk browsing may disable storage. */ }
+  if (sync && serviceAvailable) {
+    clearTimeout(displaySettingsSaveTimer);
+    displaySettingsSaveTimer = setTimeout(() => { void pushDisplaySettings(); }, 100);
+  }
+}
+
+async function loadDisplaySettings() {
+  try {
+    const response = await api<DisplaySettingsResponse>('/settings');
+    if (response.revision === displaySettingsRevision) return;
+    displaySettingsRevision = response.revision;
+    const previousFont = settings.font;
+    settings.span = response.settings.span;
+    settings.format = response.settings.format;
+    settings.historyHours = response.settings.historyHours;
+    settings.theme = response.settings.theme;
+    settings.accentColor = response.settings.accentColor;
+    if (settings.font !== 'custom') settings.font = response.settings.font;
+    if (settings.font !== previousFont) await loadFont(settings.font);
+    offset = 0;
+    save(false);
+    applyAppearance();
+    render();
+  } catch { /* Static previews and temporary service outages keep browser-local settings. */ }
 }
 
 function render() {
@@ -408,7 +453,9 @@ function openSettings() {
     fields.querySelector('fieldset')?.remove();
     fields.querySelector('[data-action="live"]')?.remove();
   }
-  fields.querySelector('.settings-note')!.textContent = 'Clock preferences stay in this browser. Calendar sources are saved on the local server.';
+  fields.querySelector('.settings-note')!.textContent = serviceAvailable
+    ? 'Clock preferences are saved on this device and update the kiosk automatically. Custom font files stay in this browser.'
+    : 'Clock preferences stay in this browser while the calendar service is unavailable.';
   fields.insertAdjacentHTML('afterbegin', `<label>Calendar view<select id="calendar-view"><option value="real" ${realMode ? 'selected' : ''}>My calendars</option><option value="sample" ${!realMode ? 'selected' : ''}>Sample preview</option></select></label><button class="text-button" data-action="sources">Manage calendar sources</button><p class="settings-note service-status" role="status"></p>`);
   fields.insertAdjacentHTML('afterbegin', `<fieldset><legend>Accent color</legend><label class="color-setting">Choose a color<input id="setting-accent" type="color" value="${settings.accentColor}" aria-label="Accent color"/></label><label>Hex color<input id="setting-accent-hex" type="text" value="${settings.accentColor}" pattern="#[0-9a-fA-F]{6}" maxlength="7" spellcheck="false" aria-label="Accent hex color"/></label></fieldset>`);
   fields.insertAdjacentHTML('afterbegin', `<label>Theme<select id="setting-theme"><option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option><option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark · true black</option></select></label><label>Clock font<select id="setting-font"><option value="inter" ${settings.font === 'inter' ? 'selected' : ''}>Inter</option><option value="open-sans" ${settings.font === 'open-sans' ? 'selected' : ''}>Open Sans</option><option value="system" ${settings.font === 'system' ? 'selected' : ''}>System</option><option value="custom" ${settings.font === 'custom' ? 'selected' : ''}>Custom font</option></select></label><label>Import a custom font<input id="custom-font-file" type="file" accept=".ttf,.otf,.woff,.woff2"/><span class="settings-note">TTF, OTF, WOFF or WOFF2 · up to 5 MB</span></label><p id="font-status" class="settings-note" role="status">${escape(fontStatus)}</p>`);
@@ -565,7 +612,10 @@ stage.addEventListener('pointerup', event => {
   }
   pointerStart = undefined;
 });
-document.addEventListener('visibilitychange', () => { if (!document.hidden && (realMode || live)) render(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && (realMode || live)) render();
+  if (!document.hidden && serviceAvailable) void loadDisplaySettings();
+});
 window.addEventListener('pageshow', () => { if (realMode || live) render(); });
 
 function setSourceMode(real: boolean) {
@@ -708,11 +758,14 @@ async function discoverService() {
   try {
     const health = await api<{ status: string; timezone: string }>('/health');
     if (health.status !== 'ok') return;
+    serviceAvailable = true;
     serviceTimezone = health.timezone;
+    await loadDisplaySettings();
     if (sourcePreference !== 'sample') setSourceMode(true);
   } catch { /* A static preview is usable without the local server. Explicit real mode reports its event fetch failure. */ }
 }
 setInterval(() => { if (realMode && !document.hidden) void loadRealEvents(true); }, 30000);
+setInterval(() => { if (serviceAvailable && !document.hidden) void loadDisplaySettings(); }, 5000);
 async function initialize() {
   try {
     await loadFont(settings.font);

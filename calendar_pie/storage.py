@@ -19,6 +19,38 @@ PUBLIC_FIELDS = (
     "lastAttempt", "lastSuccess", "lastError",
 )
 EDITABLE_FIELDS = {"name", "url", "username", "password", "color", "enabled", "refreshMinutes"}
+DEFAULT_DISPLAY_SETTINGS = {
+    "span": 12,
+    "format": "12",
+    "historyHours": 3,
+    "theme": "light",
+    "font": "inter",
+    "accentColor": "#C30052",
+}
+
+
+def validate_display_settings(data, current=None):
+    if not isinstance(data, dict):
+        raise ValidationError("Expected a JSON object.")
+    if set(data) - set(DEFAULT_DISPLAY_SETTINGS):
+        raise ValidationError("Unknown display setting.")
+    values = {**DEFAULT_DISPLAY_SETTINGS, **(current or {}), **data}
+    if values["span"] not in (12, 24) or type(values["span"]) is not int:
+        raise ValidationError("Dial span must be 12 or 24 hours.")
+    if values["format"] not in ("12", "24"):
+        raise ValidationError("Time format must be 12 or 24 hour.")
+    if values["theme"] not in ("light", "dark"):
+        raise ValidationError("Theme must be light or dark.")
+    if values["font"] not in ("inter", "open-sans", "system"):
+        raise ValidationError("Choose a bundled or system font.")
+    if (type(values["historyHours"]) is not int
+            or not 0 <= values["historyHours"] < values["span"]):
+        raise ValidationError("History hours must fit within the dial span.")
+    if (not isinstance(values["accentColor"], str)
+            or re.fullmatch(r"#[0-9a-fA-F]{6}", values["accentColor"]) is None):
+        raise ValidationError("Accent color must be a six-digit hex color.")
+    values["accentColor"] = values["accentColor"].upper()
+    return values
 
 
 def validate_calendar(data, *, partial=False):
@@ -79,7 +111,7 @@ class Store:
             os.chmod(self.db_path, 0o600)
         with self.connection() as db:
             version = db.execute("PRAGMA user_version").fetchone()[0]
-            if version not in (0, 1):
+            if version not in (0, 1, 2):
                 raise RuntimeError("Unsupported calendar database version.")
             db.execute("PRAGMA journal_mode=WAL")
             db.execute("""CREATE TABLE IF NOT EXISTS calendars (
@@ -98,7 +130,11 @@ class Store:
                 PRIMARY KEY(calendarId, id)
             )""")
             db.execute("CREATE INDEX IF NOT EXISTS events_range ON events(start, end)")
-            db.execute("PRAGMA user_version=1")
+            db.execute("""CREATE TABLE IF NOT EXISTS display_settings (
+                id INTEGER PRIMARY KEY CHECK(id=1), payload TEXT NOT NULL,
+                revision INTEGER NOT NULL DEFAULT 1
+            )""")
+            db.execute("PRAGMA user_version=2")
 
     @contextmanager
     def connection(self):
@@ -161,6 +197,26 @@ class Store:
     def delete_calendar(self, calendar_id):
         with self.connection() as db:
             return db.execute("DELETE FROM calendars WHERE id=?", (calendar_id,)).rowcount > 0
+
+    def get_display_settings(self):
+        with self.connection() as db:
+            row = db.execute("SELECT payload, revision FROM display_settings WHERE id=1").fetchone()
+            if row is None:
+                return {"settings": dict(DEFAULT_DISPLAY_SETTINGS), "revision": 0}
+            return {"settings": validate_display_settings(json.loads(row["payload"])),
+                    "revision": row["revision"]}
+
+    def update_display_settings(self, data):
+        with self.connection() as db:
+            db.execute("BEGIN IMMEDIATE")
+            row = db.execute("SELECT payload, revision FROM display_settings WHERE id=1").fetchone()
+            current = json.loads(row["payload"]) if row is not None else DEFAULT_DISPLAY_SETTINGS
+            settings = validate_display_settings(data, current)
+            revision = row["revision"] + 1 if row is not None else 1
+            db.execute("""INSERT INTO display_settings(id, payload, revision) VALUES(1, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET payload=excluded.payload, revision=excluded.revision""",
+                       (json.dumps(settings, separators=(",", ":")), revision))
+            return {"settings": settings, "revision": revision}
 
     def record_attempt(self, calendar_id, revision, at):
         with self.connection() as db:
