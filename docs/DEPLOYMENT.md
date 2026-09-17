@@ -92,7 +92,13 @@ systemctl --user restart calendar-pie-kiosk.service
 systemctl --user status calendar-pie-kiosk.service
 ```
 
-Appearance preferences belong to the kiosk's persistent Chromium profile. Configure appearance directly on the attached touch display. Both services start with the user's systemd manager and restart after a failure.
+Appearance preferences belong to the kiosk's persistent Chromium profile. To open the full interface with that profile, run this over SSH:
+
+```sh
+./scripts/configure-pi.sh
+```
+
+Settings open on the attached touch display. Press Ctrl+C in the SSH terminal when finished; the script restores the kiosk automatically. Both managed services start with the user's systemd manager and restart after a failure.
 
 ## Timezone and storage
 
