@@ -1,10 +1,10 @@
 # Local calendar service
 
-The Python service serves the built clock, manages calendar sources in SQLite, and refreshes read-only ICS feeds in the background. It runs on localhost. The Pi deployment installs application and kiosk-browser startup and recovery; LAN authentication, phone setup, and Wi-Fi provisioning are separate, unfinished milestones.
+The Python service serves the built clock, manages calendar sources in SQLite, and refreshes read-only ICS feeds in the background. It uses localhost by default. The Pi deployment installs application and kiosk-browser startup and recovery and enables access by literal IP address on the local network; LAN authentication, phone setup, and Wi-Fi provisioning are separate, unfinished milestones.
 
 Installation, Windows commands, timezone options, and Raspberry Pi operation are covered in [the deployment guide](DEPLOYMENT.md). Contributor setup and test commands are in [the development guide](DEVELOPMENT.md).
 
-The command uses [Waitress](https://flask.palletsprojects.com/en/stable/deploying/waitress/) and starts one background synchronization thread. Stop it with Ctrl+C. Options include `--port`, `--timezone`, and `--data-dir`; `--host` accepts only loopback addresses. Do not expose this version through a public reverse proxy: device login and LAN configuration are not implemented.
+The command uses [Waitress](https://flask.palletsprojects.com/en/stable/deploying/waitress/) and starts one background synchronization thread. Stop it with Ctrl+C. Options include `--port`, `--timezone`, and `--data-dir`. `--host` defaults to `127.0.0.1`; use `--host 0.0.0.0` for IPv4 LAN access or `--host ::` for IPv6. Wildcard binding accepts literal IP-address `Host` headers while rejecting arbitrary names. Do not expose this version to an untrusted network or through a public reverse proxy because device login is not implemented.
 
 ## Add calendars
 
@@ -37,7 +37,7 @@ After a restart, SQLite supplies the last snapshot while refreshing. ETag and La
 
 ## API
 
-All endpoints return JSON except successful deletion (204). Errors use `{ "error": "message" }`. Mutations reject cross-origin browser requests; POST/PATCH require `Content-Type: application/json`. The server validates localhost Host headers and does not enable CORS.
+All endpoints return JSON except successful deletion (204). Errors use `{ "error": "message" }`. Mutations reject cross-origin browser requests; POST/PATCH require `Content-Type: application/json`. The server validates `Host` headers and does not enable CORS. Loopback mode accepts only localhost names and addresses; wildcard LAN mode additionally accepts literal IP addresses.
 
 | Method and path | Behavior |
 | --- | --- |

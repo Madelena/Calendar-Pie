@@ -46,7 +46,7 @@ For the round display, open <http://127.0.0.1:8765/?kiosk=1> in a fullscreen bro
 
 ## Project status
 
-Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, and authenticated LAN configuration are planned; the current service accepts local connections only. The Pi deployment script configures application and kiosk-browser startup and failure recovery through the user's systemd manager.
+Calendar Pie is a working local prototype. Raspberry Pi performance and long-running reliability have not yet been measured. Wi-Fi setup, the captive portal, and authenticated LAN configuration are planned; the Pi deployment currently permits unauthenticated configuration by literal IP address on a trusted local network. The deployment script configures application and kiosk-browser startup and failure recovery through the user's systemd manager.
 
 All-day events are hidden. Windows that cross a daylight-saving clock change use the desktop agenda because repeated or skipped hours cannot yet be represented reliably on the dial. Calendar navigation is limited to the service's cached date range.
 

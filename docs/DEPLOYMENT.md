@@ -1,6 +1,6 @@
 # Deployment and operation
 
-Calendar Pie runs as a local Python service with a browser display. The service serves the built interface, synchronizes ICS sources, and stores calendars in SQLite. The Pi deployment script installs user-level systemd services for the application and kiosk browser. Wi-Fi provisioning, a captive portal, and LAN login are not implemented yet.
+Calendar Pie runs as a local Python service with a browser display. The service serves the built interface, synchronizes ICS sources, and stores calendars in SQLite. The Pi deployment script installs user-level systemd services for the application and kiosk browser and makes the configuration interface available to devices on the same trusted network. Wi-Fi provisioning, a captive portal, and LAN login are not implemented yet.
 
 ## Requirements
 
@@ -57,7 +57,7 @@ cd calendar-pie
 
 The script performs a reproducible frontend build, creates or updates `.venv`, installs the locked Python requirements, and enables and restarts two systemd user services:
 
-- `calendar-pie.service` runs the local application and calendar synchronization service.
+- `calendar-pie.service` runs the application and calendar synchronization service on port 8765. The Pi deployment listens on all IPv4 interfaces so another device can configure calendars.
 - `calendar-pie-kiosk.service` runs Chromium inside Cage at <http://127.0.0.1:8765/?kiosk=1>.
 
 It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk.
@@ -85,7 +85,7 @@ install -m 600 .data/calendar-pie.sqlite3 "$HOME/.local/share/calendar-pie/"
 
 The script refuses to start with an unmigrated legacy database rather than silently displaying an empty calendar list. Keep the old `.data` directory as a backup until the migrated service has been verified.
 
-Open <http://127.0.0.1:8765> in another browser through an SSH tunnel to configure calendar sources. The managed kiosk starts automatically on the attached display. To restart it or inspect its status:
+Run `hostname -I` on the Pi to find its address, then open `http://<pi-address>:8765` in another browser on the same network to configure calendar sources. For example, an address of `192.168.1.40` uses <http://192.168.1.40:8765>. The managed kiosk starts automatically on the attached display. To restart it or inspect its status:
 
 ```sh
 systemctl --user restart calendar-pie-kiosk.service
@@ -98,7 +98,7 @@ Appearance preferences belong to the kiosk's persistent Chromium profile. To ope
 ./scripts/configure-pi.sh
 ```
 
-Settings open on the attached touch display. Press Ctrl+C in the SSH terminal when finished; the script restores the kiosk automatically. Both managed services start with the user's systemd manager and restart after a failure.
+Settings open on the attached touch display. Press Ctrl+C in the SSH terminal when finished; the script restores the kiosk automatically. Both managed services start with the user's systemd manager and restart after a failure. Kiosk mode hides the pointer over the clock; the regular configuration interface retains it.
 
 ## Timezone and storage
 
@@ -116,13 +116,9 @@ Appearance settings are stored in the browser. Imported fonts stay in that brows
 
 ## Configure a Pi remotely
 
-The service binds only to loopback addresses and has no LAN login. If SSH is enabled on the Pi, forward its local service to another computer:
+The Pi deployment accepts direct connections addressed to a literal IP address, such as `http://192.168.1.40:8765`. Arbitrary `Host` names remain rejected. Calendar-source changes update the Pi's service. Appearance changes apply to the browser in which they are made, so use `scripts/configure-pi.sh` when changing the kiosk's appearance.
 
-```sh
-ssh -N -L 8765:127.0.0.1:8765 username@pi-hostname
-```
-
-Replace the username and hostname, then open <http://127.0.0.1:8765> on the other computer. Keep the SSH connection open. Calendar-source changes update the Pi's service. Appearance changes apply to the browser in which they are made, so configure kiosk appearance in the Pi's browser.
+There is currently no login for the LAN interface. Use it only on a trusted private network, do not forward port 8765 from a router, and do not expose it through a public reverse proxy. The browser and API reject cross-origin mutations, but any device that can directly open the Pi's address can view events and change calendar-source settings. Use an SSH tunnel instead if the network is not trusted; start the tunnel with `ssh -N -L 8765:127.0.0.1:8765 username@pi-address`, then open <http://127.0.0.1:8765>.
 
 ## Update an installation
 

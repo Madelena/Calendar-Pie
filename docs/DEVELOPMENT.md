@@ -78,7 +78,7 @@ Use [HARDWARE-TEST.md](HARDWARE-TEST.md) for the Pi memory sampler, touch-latenc
 
 ## Architecture and boundaries
 
-The Python service owns calendar fetching, recurrence expansion, SQLite, and static/API serving. The browser owns rendering and appearance preferences. The current service listens only on localhost; LAN authentication and the setup portal belong to later appliance work.
+The Python service owns calendar fetching, recurrence expansion, SQLite, and static/API serving. The browser owns rendering and appearance preferences. Manual launches listen only on localhost by default; the Pi deployment enables unauthenticated access by literal LAN IP for calendar configuration. LAN authentication and the setup portal belong to later appliance work.
 
 The interface redraws on meaningful changes and minute boundaries rather than animating continuously. All-day events are filtered before display. During daylight-saving transitions the renderer avoids ambiguous clock geometry and relies on the chronological desktop agenda.
 

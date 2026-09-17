@@ -49,6 +49,20 @@ def test_accepts_loopback_hosts(client, host):
     assert client.get("/api/health", headers={"Host": host}).status_code == 200
 
 
+@pytest.mark.parametrize("host", ["192.168.56.89:8765", "10.0.0.2", "[fd00::1234]:8765"])
+def test_lan_mode_accepts_literal_ip_hosts(tmp_path, host):
+    app = create_app(tmp_path / "lan.sqlite3", allow_lan=True)
+    app.testing = True
+    assert app.test_client().get("/api/health", headers={"Host": host}).status_code == 200
+
+
+@pytest.mark.parametrize("host", ["evil.example", "calendar-pie.local", "192.168.1.2.evil.example"])
+def test_lan_mode_rejects_named_hosts(tmp_path, host):
+    app = create_app(tmp_path / "lan.sqlite3", allow_lan=True)
+    app.testing = True
+    assert app.test_client().get("/api/health", headers={"Host": host}).status_code == 403
+
+
 def test_csrf_and_json_guard(client):
     assert client.post("/api/refresh", json={}, headers={"Origin": "https://evil.example"}).status_code == 403
     assert client.post("/api/refresh", json={}, headers={"Origin": "null"}).status_code == 403

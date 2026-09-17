@@ -100,7 +100,7 @@ Description=Calendar Pie local calendar service
 [Service]
 Type=simple
 WorkingDirectory=$repository_unit_value
-ExecStart="$python_unit_value" -m calendar_pie --data-dir "$data_unit_value"
+ExecStart="$python_unit_value" -m calendar_pie --host 0.0.0.0 --data-dir "$data_unit_value"
 Restart=on-failure
 RestartSec=5
 
@@ -165,4 +165,5 @@ if ! systemctl --user is-active --quiet "$kiosk_service_name"; then
     fail "The kiosk browser stopped during startup."
 fi
 
-printf '%s\n' "Calendar Pie is running at http://127.0.0.1:8765 and the kiosk is starting."
+printf '%s\n' "Calendar Pie is running on port 8765 and the kiosk is starting."
+printf '%s\n' "Open http://<pi-address>:8765 from another device on the same trusted network."

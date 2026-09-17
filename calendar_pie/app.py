@@ -1,6 +1,7 @@
-"""Loopback-only JSON API and built frontend hosting."""
+"""JSON API and built frontend hosting."""
 
 from datetime import datetime, timedelta, timezone as dt_timezone
+from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -11,7 +12,7 @@ from werkzeug.exceptions import HTTPException
 from .storage import Store, ValidationError
 
 
-def create_app(db_path, timezone="UTC", start_worker=False, static_dir=None):
+def create_app(db_path, timezone="UTC", start_worker=False, static_dir=None, allow_lan=False):
     try:
         ZoneInfo(timezone)
     except (ZoneInfoNotFoundError, ValueError, TypeError):
@@ -35,13 +36,20 @@ def create_app(db_path, timezone="UTC", start_worker=False, static_dir=None):
             service.request_refresh(calendar_id)
 
     @app.before_request
-    def guard_local_requests():
+    def guard_requests():
         try:
             host = urlsplit("http://" + request.host)
-            if (host.hostname not in ("localhost", "127.0.0.1", "::1")
-                    or host.username is not None or host.password is not None
+            hostname = host.hostname
+            allowed_host = hostname in ("localhost", "127.0.0.1", "::1")
+            if allow_lan and hostname is not None:
+                try:
+                    ip_address(hostname)
+                    allowed_host = True
+                except ValueError:
+                    pass
+            if (not allowed_host or host.username is not None or host.password is not None
                     or host.path or host.query or host.fragment):
-                return jsonify(error="Only localhost requests are allowed."), 403
+                return jsonify(error="Request host is not allowed."), 403
             host.port
         except ValueError:
             return jsonify(error="Invalid request host."), 403
