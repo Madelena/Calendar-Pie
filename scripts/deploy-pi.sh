@@ -117,7 +117,7 @@ After=$service_name
 [Service]
 Type=simple
 Environment=LIBSEAT_BACKEND=seatd
-ExecStart="$cage_unit_value" -d -- "$chromium_unit_value" --user-data-dir="$data_unit_value/chromium" --no-first-run --no-default-browser-check --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic --ozone-platform=wayland --disable-features=WaylandOverlayDelegation --kiosk http://127.0.0.1:8765/?kiosk=1
+ExecStart="$cage_unit_value" -d -- "$chromium_unit_value" --user-data-dir="$data_unit_value/chromium" --no-first-run --no-default-browser-check --noerrdialogs --disable-infobars --disable-session-crashed-bubble --password-store=basic --ozone-platform=wayland --touch-events=enabled --disable-features=WaylandOverlayDelegation --kiosk http://127.0.0.1:8765/?kiosk=1
 Restart=always
 RestartSec=5
 TimeoutStopSec=10

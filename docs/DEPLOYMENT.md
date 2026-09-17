@@ -60,7 +60,7 @@ The script performs a reproducible frontend build, creates or updates `.venv`, i
 - `calendar-pie.service` runs the application and calendar synchronization service on port 8765. The Pi deployment listens on all IPv4 interfaces so another device can configure calendars.
 - `calendar-pie-kiosk.service` runs Chromium inside Cage at <http://127.0.0.1:8765/?kiosk=1>.
 
-It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk. The Chromium command disables Wayland overlay delegation because it produced blank frames with the tested Raspberry Pi/Cage display stack.
+It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk. The Chromium command explicitly enables touch events and disables Wayland overlay delegation because the latter produced blank frames with the tested Raspberry Pi/Cage display stack.
 
 The service data is stored outside the checkout at:
 
