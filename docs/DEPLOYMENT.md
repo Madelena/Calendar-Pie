@@ -60,7 +60,7 @@ The script performs a reproducible frontend build, creates or updates `.venv`, i
 - `calendar-pie.service` runs the application and calendar synchronization service on port 8765. The Pi deployment listens on all IPv4 interfaces so another device can configure calendars.
 - `calendar-pie-kiosk.service` runs Chromium inside Cage at <http://127.0.0.1:8765/?kiosk=1>.
 
-It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk.
+It builds the frontend in a staging directory, so a failed build does not replace the assets used by the running service. It checks <http://127.0.0.1:8765/api/health> before starting the kiosk. The Chromium command disables Wayland overlay delegation because it produced blank frames with the tested Raspberry Pi/Cage display stack.
 
 The service data is stored outside the checkout at:
 
@@ -92,7 +92,7 @@ systemctl --user restart calendar-pie-kiosk.service
 systemctl --user status calendar-pie-kiosk.service
 ```
 
-Appearance preferences belong to the kiosk's persistent Chromium profile. To open the full interface with that profile, run this over SSH:
+Display preferences changed through the LAN interface are stored by the service and normally appear on the kiosk within five seconds. Imported custom-font files are browser-local; to import one directly into the kiosk's persistent Chromium profile, run this over SSH:
 
 ```sh
 ./scripts/configure-pi.sh
@@ -110,13 +110,13 @@ The service defaults to the operating system's timezone. Override it with an IAN
 
 The browser uses its own system timezone. Set the display computer's timezone to match; the server option does not change the browser or operating system.
 
-When the service is run manually, the default database is `.data/calendar-pie.sqlite3`, relative to the directory where the service starts. Use `--data-dir /path/to/data` for an explicit location and `--port 8765` to select the port. The Pi deployment script instead uses `~/.local/share/calendar-pie`. Preserve the applicable data directory during upgrades. It contains calendar credentials and cached events, so stop the service before backing it up and store backups privately.
+When the service is run manually, the default database is `.data/calendar-pie.sqlite3`, relative to the directory where the service starts. Use `--data-dir /path/to/data` for an explicit location and `--port 8765` to select the port. The Pi deployment script instead uses `~/.local/share/calendar-pie`. Preserve the applicable data directory during upgrades. It contains calendar credentials, cached events, and shared display preferences, so stop the service before backing it up and store backups privately.
 
-Appearance settings are stored in the browser. Imported fonts stay in that browser's IndexedDB. Clearing site data removes those preferences and fonts, while calendar sources remain in SQLite.
+When connected to the service, dial span, time format, fading history, theme, accent, and bundled/system font choice are stored in SQLite. The browser keeps a local copy for static or temporarily offline use. Imported font bytes stay in that browser's IndexedDB and are removed by clearing its site data.
 
 ## Configure a Pi remotely
 
-The Pi deployment accepts direct connections addressed to a literal IP address, such as `http://192.168.1.40:8765`. Arbitrary `Host` names remain rejected. Calendar-source changes update the Pi's service. Appearance changes apply to the browser in which they are made, so use `scripts/configure-pi.sh` when changing the kiosk's appearance.
+The Pi deployment accepts direct connections addressed to a literal IP address, such as `http://192.168.1.40:8765`. Arbitrary `Host` names remain rejected. Calendar-source and display-setting changes update the Pi's service; the kiosk polls shared display settings every five seconds. Custom font files are the exception and remain in the browser where they were imported.
 
 There is currently no login for the LAN interface. Use it only on a trusted private network, do not forward port 8765 from a router, and do not expose it through a public reverse proxy. The browser and API reject cross-origin mutations, but any device that can directly open the Pi's address can view events and change calendar-source settings. Use an SSH tunnel instead if the network is not trusted; start the tunnel with `ssh -N -L 8765:127.0.0.1:8765 username@pi-address`, then open <http://127.0.0.1:8765>.
 

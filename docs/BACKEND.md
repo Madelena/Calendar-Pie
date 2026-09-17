@@ -18,7 +18,7 @@ The service automatically activates **My calendars**. **Sample preview** remains
 
 ## Persistence and offline behavior
 
-`.data/calendar-pie.sqlite3` contains sources, credentials, cached ICS bodies, normalized events, and sync status. `.data/` is ignored by Git. On POSIX, newly created data directories use mode 0700 and the database uses 0600; on Windows, storage inherits the user's directory permissions. Credentials are stored locally, not encrypted by the application. Treat backups of this directory as private.
+`.data/calendar-pie.sqlite3` contains sources, credentials, cached ICS bodies, normalized events, sync status, and shared display preferences. `.data/` is ignored by Git. On POSIX, newly created data directories use mode 0700 and the database uses 0600; on Windows, storage inherits the user's directory permissions. Credentials are stored locally, not encrypted by the application. Treat backups of this directory as private.
 
 A successful sync replaces a source's events and cached feed in one transaction, so removed and cancelled events disappear. Failed downloads or parsing preserve the last successful snapshot and expose a sync error. Changes to the source URL or credentials clear the old source cache; edits made while a fetch is running prevent that older fetch from committing. Disabled sources retain their cache but do not contribute events or refresh. Deleting a source removes its cache.
 
@@ -43,6 +43,8 @@ All endpoints return JSON except successful deletion (204). Errors use `{ "error
 | --- | --- |
 | `GET /api/health` | Service status and configured timezone |
 | `GET /api/calendars` | Source settings and sync status, with `hasPassword` instead of credentials |
+| `GET /api/settings` | Shared display settings and their revision |
+| `PATCH /api/settings` | Update supplied display settings and increment their revision |
 | `POST /api/calendars` | Add a source and queue refresh |
 | `PATCH /api/calendars/{id}` | Edit supplied source fields and queue refresh |
 | `DELETE /api/calendars/{id}` | Remove source and cached events |
@@ -50,7 +52,7 @@ All endpoints return JSON except successful deletion (204). Errors use `{ "error
 | `POST /api/refresh` | Queue all enabled sources; body `{}` |
 | `GET /api/events?start=...&end=...` | Enabled timed events, calendar colors/status, and common cache coverage |
 
-Source bodies accept `name`, `url`, `username`, `password`, `color`, `enabled`, and `refreshMinutes`. Date queries require ISO timestamps with offsets, a positive interval, and at most 32 days. SQLite has a versioned schema (`PRAGMA user_version=1`); unknown newer versions are rejected.
+Source bodies accept `name`, `url`, `username`, `password`, `color`, `enabled`, and `refreshMinutes`. Display-setting patches accept `span`, `format`, `historyHours`, `theme`, `font`, and `accentColor`; custom font bytes remain browser-local. Date queries require ISO timestamps with offsets, a positive interval, and at most 32 days. SQLite has a versioned schema (`PRAGMA user_version=2`); unknown newer versions are rejected.
 
 ## Verification
 

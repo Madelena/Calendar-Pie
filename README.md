@@ -40,7 +40,7 @@ Tap an event slice to see its details. The countdown shows the time until an act
 
 Swipe the clock or use the previous and next buttons to browse time. Select the displayed time range to return to the current window. The center always shows the current time and date.
 
-Settings control the dial span, time format, theme, accent color, fonts, and fading history. Choose **Sample preview** to explore the clock without adding a calendar. Appearance preferences belong to each browser; calendar sources are stored by the local service.
+Settings control the dial span, time format, theme, accent color, fonts, and fading history. Choose **Sample preview** to explore the clock without adding a calendar. When the calendar service is available, display preferences are stored by the service and update the kiosk automatically. Imported custom-font files remain local to the browser where they were added.
 
 For the round display, open <http://127.0.0.1:8765/?kiosk=1> in a fullscreen browser. Settings are available only from the regular browser view without `?kiosk=1`.
 

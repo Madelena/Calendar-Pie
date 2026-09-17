@@ -39,6 +39,20 @@ def test_health_crud_and_secret_omission(client, app):
     assert client.post(f"/api/calendars/{calendar_id}/refresh", json={}).status_code == 404
 
 
+def test_display_settings_persist_and_validate(client):
+    defaults = {"span": 12, "format": "12", "historyHours": 3, "theme": "light",
+                "font": "inter", "accentColor": "#C30052"}
+    assert client.get("/api/settings").json == {"settings": defaults, "revision": 0}
+    changed = client.patch("/api/settings", json={"theme": "dark", "accentColor": "#abcdef"})
+    assert changed.status_code == 200
+    assert changed.json == {"settings": {**defaults, "theme": "dark", "accentColor": "#ABCDEF"},
+                            "revision": 1}
+    assert client.get("/api/settings").json == changed.json
+    assert client.patch("/api/settings", json={"span": 12, "historyHours": 12}).status_code == 400
+    assert client.patch("/api/settings", json={"font": "custom"}).status_code == 400
+    assert client.patch("/api/settings", json={"unexpected": True}).status_code == 400
+
+
 @pytest.mark.parametrize("host", ["evil.example", "localhost.evil.example", "192.168.1.2", "127.0.0.2"])
 def test_rejects_non_loopback_hosts(client, host):
     assert client.get("/api/calendars", headers={"Host": host}).status_code == 403

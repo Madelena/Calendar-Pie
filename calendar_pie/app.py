@@ -101,6 +101,14 @@ def create_app(db_path, timezone="UTC", start_worker=False, static_dir=None, all
     def calendars():
         return jsonify(calendars=store.list_calendars())
 
+    @app.get("/api/settings")
+    def display_settings():
+        return jsonify(store.get_display_settings())
+
+    @app.patch("/api/settings")
+    def update_display_settings():
+        return jsonify(store.update_display_settings(body()))
+
     @app.post("/api/calendars")
     def create_calendar():
         calendar = store.create_calendar(body())

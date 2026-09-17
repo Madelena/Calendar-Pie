@@ -14,6 +14,15 @@ export interface EventResponse {
   cacheRange: { start: string; end: string } | null;
   timezone: string;
 }
+export interface DisplaySettings {
+  span: 12 | 24;
+  format: '12' | '24';
+  historyHours: number;
+  theme: 'light' | 'dark';
+  font: 'inter' | 'open-sans' | 'system';
+  accentColor: string;
+}
+export interface DisplaySettingsResponse { settings: DisplaySettings; revision: number }
 export async function api<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {
     method,

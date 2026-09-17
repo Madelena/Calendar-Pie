@@ -35,11 +35,33 @@ def test_persistence_password_and_schema(store):
     assert restored.list_calendars() == [calendar]
     assert restored.get_calendar(calendar["id"], True)["password"] == "private password"
     with restored.connection() as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
         assert db.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
     restored.update_calendar(calendar["id"], {"name": "New name"})
     assert restored.get_calendar(calendar["id"], True)["password"] == "private password"
     assert restored.update_calendar(calendar["id"], {"password": ""})["hasPassword"] is False
+
+
+def test_display_settings_survive_reopen_and_merge_updates(store):
+    assert store.get_display_settings()["revision"] == 0
+    first = store.update_display_settings({"theme": "dark", "span": 24, "historyHours": 8})
+    assert first["revision"] == 1
+    assert first["settings"]["theme"] == "dark"
+    second = Store(store.db_path).update_display_settings({"format": "24"})
+    assert second["revision"] == 2
+    assert second["settings"]["theme"] == "dark"
+    assert second["settings"]["span"] == 24
+    assert second["settings"]["format"] == "24"
+
+
+def test_version_one_database_adds_display_settings(store):
+    with store.connection() as db:
+        db.execute("DROP TABLE display_settings")
+        db.execute("PRAGMA user_version=1")
+    migrated = Store(store.db_path)
+    assert migrated.get_display_settings()["revision"] == 0
+    with migrated.connection() as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 2
 
 
 @pytest.mark.skipif(os.name == "nt", reason="POSIX filesystem permissions")
